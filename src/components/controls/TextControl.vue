@@ -124,10 +124,17 @@ export default {
       this.isVisible = !this.isVisible;
     },
     focus() {
-      this.$nextTick(() => {
-        const input = this.$el.querySelector("input");
-        if (input) input.focus();
-      });
+        this.$nextTick(() => {
+            const input = this.$el.querySelector('input.textfield-input');
+
+            if (input && !input.disabled) {
+                input.focus();
+            }
+        });
+    },
+    blur() {
+        const input = this.$el.querySelector('input.textfield-input');
+        input?.blur();
     },
     handleMobileInput(event) {
       let value = event.target.value.replace(/\D/g, "");

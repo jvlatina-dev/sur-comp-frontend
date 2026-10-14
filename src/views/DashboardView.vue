@@ -1,36 +1,13 @@
 <template>
     <div class="rounded-lg bg-white p-5 select-none" style="height: 71vh;">
-        <ArchiveView @new="new_real = true; cut_off_date = ''" ref="archiveView"/>
+        <ArchiveView @new="new_batch = true;" ref="archiveView"/>
     </div>
 
     <HotKeysSection class="mt-5" home/>
 
     <transition name="slide-in">
-        <ModalControl v-if="new_real" :is_visible="new_real" @close="new_real = false" :width="'w-1/3'">
-            <p class="text-primary text-xl font-bold text-left">New Realization</p>
-            <div class="my-5">
-                <DatePickerControl label="Cut-Off Date" fieldId="cut_off_date" v-model="cut_off_date" :maxDate="today" @enter="checkCutOff" autofocus/>
-            </div>
-
-            <div class="w-full flex items-center justify-end mt-4" style="gap: 1rem;">
-                <ButtonControl variant="primary" @click="checkCutOff" style="width: 7rem;" :disabled="!this.cut_off_date">Proceed</ButtonControl>
-                <ButtonControl variant="secondary" @click="new_real = false" style="width: 7rem;">Cancel</ButtonControl>
-            </div>
-        </ModalControl>
-    </transition>
-
-    <transition name="slide-in">
-        <ModalControl v-if="realized" :is_visible="realized" @close="closeRealized" :width="'w-90'" :closable="true">
-            <p class="text-primary text-xl font-bold text-left">Cut-Off Date: {{ formatDate(this.cut_off_date) }}</p>
-            <div class="my-5">
-                <DataTableControl :columns="columns" :rows="rows" rowKey="floan_id" :pagination="false" :height="'49vh'" :isSelectionActive="false"/>
-            </div>
-
-            <div class="w-full flex items-center justify-end mt-4" style="gap: 1rem;">
-                <ButtonControl variant="secondary" @click="exportExcel" style="width: 7rem;">Export</ButtonControl>
-                <ButtonControl variant="primary" @click="saveLedger" style="width: 7rem;">Save</ButtonControl>
-                <!-- <ButtonControl variant="primary" @click="postLedger" style="width: 7rem;">Post</ButtonControl> -->
-            </div>
+        <ModalControl v-if="new_batch" :is_visible="new_batch" @close="new_batch = false" :width="'w-4/5'">
+            <CreateNewBatchView @close="new_batch = false;"/>
         </ModalControl>
     </transition>
 
@@ -54,6 +31,7 @@ import DatePickerControl from '@/components/controls/DatePickerControl.vue';
 import ButtonControl from '@/components/controls/ButtonControl.vue';
 import HotKeysSection from '@/components/sections/HotKeysSection.vue';
 import ArchiveView from './sections/ArchiveView.vue';
+import CreateNewBatchView from './sections/CreateNewBatchView.vue';
 
 export default {
     name: 'Dashboard',
@@ -65,7 +43,8 @@ export default {
         DataTableControl,
         ModalControl,
         DatePickerControl,
-        ArchiveView
+        ArchiveView,
+        CreateNewBatchView
     },
     computed: {
         batchHeaders() {
@@ -74,11 +53,8 @@ export default {
     },
     data() {
         return {
-            isOverride: false,
             message_modal: false,
-            new_real: false,
-            realized: false,
-            cut_off_date: '',
+            new_batch: false,
             title: '',
             msg: '',
             theme: '',
@@ -87,8 +63,6 @@ export default {
             negativeBtn: '',
             negativeClick: null,
             modal_action: null,
-            existingBatch: null,
-            today: new Date().toISOString().split('T')[0],
             columns: [
                 { label: 'Member Key', field: 'fkey', align: 'center', formatAmount: false },
                 { label: 'Acct. No.', field: 'facct_no', align: 'center', formatAmount: false },
@@ -119,14 +93,6 @@ export default {
         window.removeEventListener("keydown", this.handleHotkeys, true);
     },
     methods: {
-        closeRealized() {
-            this.message_modal = true;
-            this.theme = "warning";
-            this.title = "Are you sure?";
-            this.positiveBtn = "Yes";
-            this.negativeBtn = "No";
-            this.msg = "Are you sure you want to close the realized data? This will not be saved once closed.";
-        },
         positiveClickMethod() {
             if (this.modal_action === 'saved') {
                 this.$refs.archiveView?.getHeaders();
@@ -144,71 +110,6 @@ export default {
         negativeClickMethod() {
             this.message_modal = false;
             this.modal_action = null;
-        },
-        checkCutOff() {
-                const existing = this.batchHeaders.find(row => {
-                const [datePart] = row.fasu_real_cutoff.split(" ");
-                const [month, day, year] = datePart.split("/");
-                const cutoffDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-
-                return cutoffDate === this.cut_off_date &&
-                    row.fasu_real_status === "P";
-            });
-
-
-
-            if (existing) {
-                this.theme = "warning";
-                this.title = "Override Existing Batch";
-                this.msg = "You already have a realization with this Cut-Off Date.\nDo you wish to override?";
-                this.positiveBtn = "Yes";
-                this.negativeBtn = "No";
-                this.modal_action = "override";
-                this.message_modal = true;
-                this.existingBatch = existing;
-            } else {
-                console.log("No existing batch found. Proceeding with new realization.");
-                this.newReal();
-            }
-        },
-        overrideReal() {
-            const rowsToOverride = this.rows.filter(row => !row.isTotalRow);
-
-            console.log("Rows To Override:", rowsToOverride);
-
-            this.setLoading(true);
-
-            window.chrome.webview.postMessage({
-                action: "override_surcharge",
-                batchNo: this.existingBatch.fasu_real_batch,
-                data: rowsToOverride
-            });
-        },
-        newReal() {
-            this.rows = [];
-            this.setLoading(true);
-            this.new_real = false;
-
-            window.chrome.webview.postMessage({
-                action: "get_all_records",
-                cut_off_date: this.cut_off_date
-            });
-        },
-        saveLedger() {
-            const rowsToSave = this.rows.filter(row => !row.isTotalRow);
-
-            console.log("Save Ledger Data Sent:", rowsToSave);
-
-            this.setLoading(true);
-
-            window.chrome.webview.postMessage({
-                action: "save_surcharge",
-                data: rowsToSave,
-                cut_off_date: this.cut_off_date
-            });
-        },
-        postLedger() {
-            this.setLoading(true);
         },
         exportExcel() {
             this.setLoading(true);

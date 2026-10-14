@@ -114,7 +114,7 @@ export default {
             view_action: null,
             columns: [
                 { label: 'Batch No.', field: 'fasu_real_batch', align: 'center' },
-                { label: 'Cut-Off Date', field: 'fasu_real_cutoff', align: 'center' },
+                { label: 'Date', field: 'fasu_real_cutoff', align: 'center' },
                 { label: 'Total No.', field: 'fasu_real_rec', align: 'center', formatAmount: false },
                 { label: 'Total Amount', field: 'fasu_real_amt', align: 'right' },
                 { label: 'JV No.', field: 'fjv_no', align: 'center', align: 'center', formatAmount: false },

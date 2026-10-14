@@ -10,10 +10,6 @@
             </div>
 
             <div class="flex flex-wrap text-gray-600 mt-2 text-sm" style="gap: 1rem;">
-                <div class="rounded-lg bg-gray-50 border p-3">
-                    <p class="text-xxs text-gray-500 mb-1">Cut-Off Date</p>
-                    <p class="font-bold">{{ formatDate($store.state?.viewed_batch?.fasu_real_cutoff) }}</p>
-                </div>
 
                 <div class="rounded-lg bg-gray-50 border p-3">
                     <p class="text-xxs text-gray-500 mb-1">Total Amount</p>
@@ -71,9 +67,13 @@
         </div>
 
         <div class="flex flex-row items-center justify-between w-full">
-            <div class="w-full flex items-center justify-end">
+            <div class="w-full flex items-center justify-between">
                 <div class="flex flex-row items-center justify-center" style="gap: 1rem;">
-                    <!-- <ButtonControl v-if="$store.state?.viewed_batch?.fjv_no" variant="secondary" @click="print" style="width: 7rem;">Print</ButtonControl> -->
+                    <ButtonControl variant="secondary" style="width: 10rem;">Add New Entry</ButtonControl>
+                    <ButtonControl variant="primary" style="width: 10rem;">Save Changes</ButtonControl>
+                </div>
+
+                <div class="flex flex-row items-center justify-center" style="gap: 1rem;">
                     <ButtonControl variant="primary" @click="exportExcel" style="width: 7rem;">Export</ButtonControl>
                 </div>
             </div>

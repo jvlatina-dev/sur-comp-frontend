@@ -3,48 +3,29 @@
     <!-- Table -->
     <div class="rounded border flex flex-col max-h-full h-full overflow-hidden">
       <!-- header wrapper -->
-      <div
-        ref="headerScroll"
-        class="overflow-x-auto overflow-y-hidden table-header-scroll"
-        @scroll="syncScroll('header')"
-      >
-        <table class="min-w-max text-center table-fixed table-header">
+      <div ref="headerScroll" class="overflow-x-auto overflow-y-hidden table-header-scroll"
+        @scroll="syncScroll('header')">
+        <table class="w-full text-center table-fixed table-header">
           <colgroup>
             <col v-if="selectionActive" :style="columnWidthStyle('__select')" />
             <col v-for="col in columns" :key="col.field" :style="columnWidthStyle(col)" />
           </colgroup>
           <thead class="bg-primary">
             <tr>
-              <th
-                v-if="selectionActive"
-                scope="col"
+              <th v-if="selectionActive" scope="col"
                 class="px-3 py-2 text-xxs font-semibold uppercase tracking-wider select-none border-r border-green-700 bg-primary cursor-pointer"
-                @click="toggleSelectAllDisplayedRows(!allDisplayedSelected)"
-              >
-                <div class="flex flex-col items-center justify-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    :checked="allDisplayedSelected"
-                    @change="toggleSelectAllDisplayedRows($event.target.checked)"
-                    @click.stop
-                    class="pointer-events-none"
-                    style="accent-color: #016b00;"
-                  />
+                @click="toggleSelectAllDisplayedRows(!allDisplayedSelected)">
+                <div class="flex flex-col items-center justify-center">
+                  <input type="checkbox" tabindex="-1" class="pointer-events-none" style="accent-color: #016b00;"
+                    :checked="allDisplayedSelected" />
                 </div>
               </th>
 
-              <th
-                v-for="col in columns"
-                :key="col.field"
-                scope="col"
-                :style="columnWidthStyle(col)"
-                class="px-3 py-2 text-xxs font-semibold uppercase tracking-wider select-none border-r border-green-700 last:border-r-0 bg-primary"
-              >
+              <th v-for="col in columns" :key="col.field" scope="col" :style="columnWidthStyle(col)"
+                class="px-3 py-2 text-xxs font-semibold uppercase tracking-wider select-none border-r border-green-700 last:border-r-0 bg-primary">
                 <slot :name="`header:${col.field}`" :column="col">
-                  <button
-                        v-if="col.sortable !== false"
-                        class="inline-flex items-center gap-1 text-white uppercase font-semibold"
-                      >
+                  <button v-if="col.sortable !== false"
+                    class="inline-flex items-center gap-1 text-white uppercase font-semibold">
                     <span>{{ col.label }}</span>
                     <span class="text-white ml-1" v-if="!col.filter && sortBy === col.field">
                       <span v-if="sortDir === 'asc'">▲</span>
@@ -60,23 +41,16 @@
       </div>
 
       <!-- scrollable body rows only -->
-      <div
-        ref="tableBody"
-        class="overflow-y-auto overflow-x-hidden table-body-scroll border-b border-gray-200"
-        @scroll="syncScroll('body')"
-        :style="{ height: height }"
-      >
-        <table class="min-w-max text-center table-fixed">
+      <div ref="tableBody" class="overflow-y-auto overflow-x-hidden table-body-scroll border-b border-gray-200"
+        @scroll="syncScroll('body')" :style="{ height: height }">
+        <table class="w-full text-center table-fixed">
           <colgroup>
             <col v-if="selectionActive" :style="columnWidthStyle('__select')" />
             <col v-for="col in columns" :key="col.field" :style="columnWidthStyle(col)" />
           </colgroup>
           <tbody>
             <tr v-if="displayedBodyRows.length === 0">
-              <td
-                :colspan="columns.length + (selectionActive ? 1 : 0)"
-                class="no-records-cell text-grey-dark italic"
-              >
+              <td :colspan="columns.length + (selectionActive ? 1 : 0)" class="no-records-cell text-grey-dark italic">
                 <div class="no-records-content">
                   <img src="@/assets/images/papsi_box.png" class="w-16 opacity-75">
                   <p class="text-sm mt-4">No records found.</p>
@@ -84,69 +58,50 @@
               </td>
             </tr>
 
-            <tr
-              v-for="(row, index) in displayedBodyRows"
-              :key="row[rowKey] || JSON.stringify(row)"
-              class="transition border-b"
-              @mouseenter="canHoverIndex ? hoveredRowIndex = index : null"
-              @mouseleave="canHoverIndex ? hoveredRowIndex = -1 : null"
-              :class="[
+            <tr v-for="(row, index) in displayedBodyRows" :key="row[rowKey] || JSON.stringify(row)"
+              class="transition border-b" @mouseenter="canHoverIndex ? hoveredRowIndex = index : null"
+              @mouseleave="canHoverIndex ? hoveredRowIndex = -1 : null" :class="[
                 typeof rowClass === 'function' ? rowClass(row) : '',
-                selectionActive && selectedRowIndex === index ? 'bg-yellow-lightest' : '',
+                highlightSelectedRow && selectionActive && selectedRowIndex === index
+                  ? 'bg-yellow-lightest'
+                  : '',
                 selectionActive && isRowSelected(row) && selectedRowIndex !== index ? 'bg-green-lightest' : '',
-                !selectionActive && canHoverIndex && (hoveredRowIndex === index || selectedRowIndex === index) ? 'bg-gray-100' : '',
+                !selectionActive &&
+                  (hoveredRowIndex === index || selectedRowIndex === index)
+                  ? 'bg-gray-100'
+                  : '',
                 hover && !isRowDisabled(row) && !hasCustomRowClass(row) && !selectionActive ? 'table-row-hover cursor-pointer' : (hover && !isRowDisabled(row) && !selectionActive ? 'cursor-pointer' : ''),
                 isRowDisabled(row) ? 'bg-gray-100 text-white cursor-not-allowed opacity-75' : ''
-              ]"
-              @click="handleRowClick(row, index)"
-              @dblclick="$emit('row-dblclick', row)"
-            >
-              <td
-                v-if="selectionActive"
-                class="px-3 py-1 text-xxs text-gray-500 select-none border-r border-gray-200 flex flex-col items-center justify-center cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  :checked="isRowSelected(row)"
-                  :disabled="row.isTotalRow || isRowDisabled(row)"
-                  @change.stop="toggleRowSelection(row)"
-                  @click.stop
-                  class="mt-1 pointer-events-none"
-                  style="accent-color: #016b00;"
-                />
+              ]" @dblclick="handleDblRowClick(row, index)" @click="handleRowClick(row, index)">
+              <td v-if="selectionActive"
+                class="px-3 py-1 text-xxs text-gray-500 select-none border-r border-gray-200 flex flex-col items-center justify-center">
+                <input type="checkbox" tabindex="-1" class="pointer-events-none mt-1" :checked="isRowSelected(row)"
+                  style="accent-color: #016b00;" />
               </td>
 
-              <td
-                v-for="col in columns"
-                :key="col.field"
-                :style="columnWidthStyle(col)"
-                class="px-3 py-1 text-xxs text-gray-700 select-none border-r border-gray-200 last:border-r-0"
-                :class="[
-                    cellAlign(col),
-                    selectionActive && selectedRowIndex === index
+              <td v-for="col in columns" :key="col.field" :style="columnWidthStyle(col)"
+                class="px-3 py-1 text-xxs text-gray-700 select-none border-r border-gray-200 last:border-r-0" :class="[
+                  cellAlign(col),
+
+                  highlightSelectedRow && selectedRowIndex === index
+                  ? 'bg-yellow-lightest'
+                  : selectionActive && isRowSelected(row)
+                    ? 'bg-green-lightest'
+                    : !selectionActive && selectedRowIndex === index && highlightSelectedRow
                       ? 'bg-yellow-lightest'
-                      : selectionActive && isRowSelected(row)
-                        ? 'bg-green-lightest'
-                        : cellColor(col, row),
-                    {
-                      'bg-warning-lighter':
-                        col.field === highlightColumn &&
-                        !(selectionActive && selectedRowIndex === index) &&
-                        !(selectionActive && isRowSelected(row))
-                    }
-                  ]"
-              >
-                <input
-                  v-if="isEditing(row, col.field)"
-                  v-model="editValue"
-                  type="text"
+                      : cellColor(col, row),
+
+                  {
+                    'bg-warning-lighter':
+                      col.field === highlightColumn &&
+                      !(selectionActive && selectedRowIndex === index) &&
+                      !(selectionActive && isRowSelected(row))
+                  }
+                ]">
+                <input v-if="isEditing(row, col.field)" v-model="editValue" type="text"
                   class="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                  @keydown="handleEditKeydown($event, row, col.field)"
-                  @blur="cancelEdit"
-                  
-                  style="accent-color: #016b00;"
-                  autofocus
-                />
+                  @keydown="handleEditKeydown($event, row, col.field)" @blur="cancelEdit" style="accent-color: #016b00;"
+                  autofocus />
                 <template v-else>
                   <slot :name="`cell:${col.field}`" :row="row" :value="displayValue(row, col)">
                     {{ formatValue(displayValue(row, col), col) }}
@@ -159,151 +114,105 @@
       </div>
 
       <!-- footer wrapper -->
-      <div
-        ref="footerScroll"
-        class="overflow-x-auto overflow-y-hidden table-footer-scroll"
-        @scroll="syncScroll('footer')"
-      >
-        <table
-          v-if="displayedTotalRows.length > 0"
-          class="min-w-max text-center table-fixed table-footer"
-        >
+      <div ref="footerScroll" class="overflow-x-auto overflow-y-hidden table-footer-scroll"
+        @scroll="syncScroll('footer')">
+        <table v-if="displayedTotalRows.length > 0" class="w-full text-center table-fixed table-footer">
           <colgroup>
             <col v-if="selectionActive" :style="columnWidthStyle('__select')" />
             <col v-for="col in columns" :key="col.field" :style="columnWidthStyle(col)" />
           </colgroup>
           <tbody>
-            <tr
-              v-for="(row, index) in displayedTotalRows"
-              :key="'total-' + index"
-              class=" text-gray-600 font-bold bg-gray-100"
-              
-            >
-              <td
-                v-if="selectionActive"
-                class="px-3 py-1 text-xxs border-r border-gray-200 flex flex-col items-center justify-center"
-              >
-                <!-- <span class="text-xxs mt-1 font-semibold">{{ selectedRows.length }}</span> -->
+            <tr v-for="(row, index) in displayedTotalRows" :key="'total-' + index" class=" text-gray-600 font-bold"
+              :class="[selectionActive ? 'bg-green-custom' : 'bg-gray-100']">
+              <td v-if="selectionActive"
+                class="px-3 py-1 text-xxs border-r border-gray-200 flex flex-col items-center justify-center">
+                <span class="text-xxs mt-1 font-semibold">{{ selectedRows.length }}</span>
               </td>
 
-              <td
-                v-for="col in columns"
-                :key="col.field"
-                :style="columnWidthStyle(col)"
-                class="px-3 py-1 text-xxs border-r border-gray-200 last:border-r-0"
-                :class="cellAlign(col)"
-              >
+              <td v-for="col in columns" :key="col.field" :style="columnWidthStyle(col)"
+                class="px-3 py-1 text-xxs border-r border-gray-200 last:border-r-0" :class="cellAlign(col)">
                 {{ formatValue(displayValue(row, col), col) }}
               </td>
             </tr>
           </tbody>
         </table>
-      </div> 
+      </div>
     </div>
 
-    <div
-      class="mt-2 flex items-center"
-      :class="pagination ? 'justify-between' : 'justify-start'"
-    >
-            <!-- LEFT SIDE -->
-            <div class="flex flex-row items-center justify-start" style="gap: 0.5rem;">
+    <div class="mt-2 flex items-center" :class="pagination ? 'justify-between' : 'justify-start'">
+      <!-- LEFT SIDE -->
+      <div class="flex flex-row items-center justify-start" style="gap: 0.5rem;">
 
-              <!-- Rows per page -->
-              <div
-                v-if="pagination"
-                class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
-              >
-                <div class="flex items-center gap-2">
-                  <label class="text-xxs text-gray-600 mr-2">Rows per page: </label>
+        <!-- Rows per page -->
+        <div v-if="pagination" class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div class="flex items-center gap-2">
+            <label class="text-xxs text-gray-600 mr-2">Rows per page: </label>
 
-                  <select
-                    v-model.number="pageSize"
-                    class="rounded border px-1 py-1 focus:outline-none text-xxs"
-                  >
-                    <option
-                      v-for="n in pageSizeOptions"
-                      :key="n"
-                      :value="n"
-                    >
-                      {{ n }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              <!-- Record Count -->
-              <div class="text-xxs text-grey-dark italic">
-                <template v-if="pagination">
-                  Showing
-                  <span class="font-medium">
-                    {{ (sortedRows.length > 0 ? startIndex + 1 : 0).toLocaleString() }}
-                  </span>–
-                  <span class="font-medium">
-                    {{ endIndex.toLocaleString() }}
-                  </span>
-                  of
-                  <span class="font-medium">
-                    {{ filteredRows.length.toLocaleString() }}
-                  </span>
-                </template>
-
-                <template v-else>
-                  Total records:
-                  <span class="font-medium">
-                    {{ filteredRows.filter(r => !r.isTotalRow).length.toLocaleString() }}
-                  </span>
-                </template>
-              </div>
-            </div>
-
-            <!-- RIGHT SIDE -->
-            <div
-              v-if="pagination"
-              class="flex items-center text-xxs"
-              style="gap: 0.5rem;"
-            >
-              <button
-                class="flex justify-center items-center rounded-full border p-1 text-xss disabled:opacity-40 bg-white"
-                :class="{ 'opacity-50 cursor-default': page === 1, 'hover:bg-white': page != 1 }"
-                :disabled="page === 1"
-                @click="page = 1"
-              >
-                <img :src="getIcon('first_page')" class="w-4 h-4" />
-              </button>
-
-              <button
-                class="flex justify-center items-center rounded-full border p-1 text-xss disabled:opacity-40 bg-white"
-                :class="{ 'opacity-50 cursor-default': page === 1, 'hover:bg-white': page != 1 }"
-                :disabled="page === 1"
-                @click="page--"
-              >
-                <img :src="getIcon('arrow_left')" class="w-4 h-4" />
-              </button>
-
-              <span class="text-xxs">
-                Page <strong>{{ page.toLocaleString() }}</strong> /
-                {{ totalPages.toLocaleString() }}
-              </span>
-
-              <button
-                class="flex justify-center items-center rounded-full border p-1 text-xss disabled:opacity-40 bg-white"
-                :class="{ 'opacity-50 cursor-default': page === totalPages, 'hover:bg-white': page != totalPages }"
-                :disabled="page === totalPages || totalPages === 0"
-                @click="page++"
-              >
-                <img :src="getIcon('arrow_right')" class="w-4 h-4" />
-              </button>
-
-              <button
-                class="flex justify-center items-center rounded-full border p-1 text-xss disabled:opacity-40 bg-white"
-                :class="{ 'opacity-50 cursor-default': page === totalPages, 'hover:bg-white': page != totalPages }"
-                :disabled="page === totalPages || totalPages === 0"
-                @click="page = totalPages"
-              >
-                <img :src="getIcon('last_page')" class="w-4 h-4" />
-              </button>
-            </div>
+            <select v-model.number="pageSize" class="rounded border px-1 py-1 focus:outline-none text-xxs">
+              <option v-for="n in pageSizeOptions" :key="n" :value="n">
+                {{ n }}
+              </option>
+            </select>
           </div>
+        </div>
+
+        <!-- Record Count -->
+        <div class="text-xs text-grey-darker italic">
+          <template v-if="pagination">
+            Showing
+            <span class="font-medium">
+              {{ (sortedRows.length > 0 ? startIndex + 1 : 0).toLocaleString() }}
+            </span>–
+            <span class="font-medium">
+              {{ endIndex.toLocaleString() }}
+            </span>
+            of
+            <span class="font-medium">
+              {{ filteredRows.length.toLocaleString() }}
+            </span>
+          </template>
+
+          <template v-else>
+            Total records:
+            <span class="font-medium">
+              {{filteredRows.filter(r => !r.isTotalRow).length.toLocaleString()}}
+            </span>
+          </template>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDE -->
+      <div v-if="pagination" class="flex items-center text-xxs" style="gap: 0.5rem;">
+        <button class="flex justify-center items-center rounded-full border p-1 text-xss disabled:opacity-40 bg-white"
+          :class="{ 'opacity-50 cursor-default': page === 1, 'hover:bg-white': page != 1 }" :disabled="page === 1"
+          @click="page = 1">
+          <img :src="getIcon('first_page')" class="w-4 h-4" />
+        </button>
+
+        <button class="flex justify-center items-center rounded-full border p-1 text-xss disabled:opacity-40 bg-white"
+          :class="{ 'opacity-50 cursor-default': page === 1, 'hover:bg-white': page != 1 }" :disabled="page === 1"
+          @click="page--">
+          <img :src="getIcon('arrow_left')" class="w-4 h-4" />
+        </button>
+
+        <span class="text-xxs">
+          Page <strong>{{ page.toLocaleString() }}</strong> /
+          {{ totalPages.toLocaleString() }}
+        </span>
+
+        <button class="flex justify-center items-center rounded-full border p-1 text-xss disabled:opacity-40 bg-white"
+          :class="{ 'opacity-50 cursor-default': page === totalPages, 'hover:bg-white': page != totalPages }"
+          :disabled="page === totalPages || totalPages === 0" @click="page++">
+          <img :src="getIcon('arrow_right')" class="w-4 h-4" />
+        </button>
+
+        <button class="flex justify-center items-center rounded-full border p-1 text-xss disabled:opacity-40 bg-white"
+          :class="{ 'opacity-50 cursor-default': page === totalPages, 'hover:bg-white': page != totalPages }"
+          :disabled="page === totalPages || totalPages === 0" @click="page = totalPages">
+          <img :src="getIcon('last_page')" class="w-4 h-4" />
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -313,7 +222,6 @@ import mixin from "@/mixins/controls.js";
 export default {
   mixins: [mixin],
   props: {
-    isSelectionActive: { type: Boolean, default: false },
     mode: { type: String, default: '' },
     modified: { type: Boolean, default: false },
     columns: { type: Array, required: true },
@@ -330,29 +238,27 @@ export default {
     editable: { type: Boolean, default: false },
     disabledRows: { type: Array, default: () => [] },
     highlightColumn: { type: String, default: null },
-    enableSorting: { type: Boolean, default: false },
     canHoverIndex: { type: Boolean, default: false },
     isSavings: { type: Boolean, default: false },
     isReceivable: { type: Boolean, default: false },
     formatAmounts: { type: Boolean, default: true },
+    highlightSelectedRow: { type: Boolean, default: false },
   },
   data() {
     return {
       hasScrollbar: false,
-      hoveredRowIndex: -1,  
+      hoveredRowIndex: -1,
       selectedRowIndex: 0,
-      // remember how the last interaction occurred so we can ignore
-      // accidental double‑clicks caused by keyboard-generated click events
-      lastInteraction: null, // 'mouse' | 'keyboard' | null
+      lastInteraction: null,
       pageSize: 20,
       page: 1,
       sortBy: this.initialSort ? this.initialSort.by : null,
       sortDir: this.initialSort ? this.initialSort.dir : "asc",
       filterModal: { open: false, column: null },
       columnFilters: {},
-      editingCell: null,  // { rowKey, field }
-      editValue: '',      // current edit value
-      selectionActive: this.isSelectionActive,
+      editingCell: null,
+      editValue: '',
+      selectionActive: false,
       selectedRowKeys: [],
       isSyncingScroll: false,
     };
@@ -360,6 +266,13 @@ export default {
   mounted() {
     window.addEventListener("keydown", this.handleArrowNavigation);
     window.addEventListener("keydown", this.handleSelectionHotkey);
+
+    this.$nextTick(() => {
+      if (this.displayedBodyRows.length) {
+        this.selectedRowIndex = 0;
+        this.hoveredRowIndex = 0;
+      }
+    });
   },
   beforeUnmount() {
     window.removeEventListener("keydown", this.handleArrowNavigation);
@@ -422,41 +335,7 @@ export default {
       return this.displayedRows.filter((row) => !row.isTotalRow);
     },
     displayedTotalRows() {
-      // Original behavior when selection mode is OFF
-      if (!this.selectionActive) {
-        return this.displayedRows.filter((row) => row.isTotalRow);
-      }
-
-      // No footer if nothing is selected
-      if (!this.selectedRows.length) {
-        return [];
-      }
-
-      const totalRow = {
-        isTotalRow: true,
-      };
-
-      this.columns.forEach(col => {
-        // Keep the TOTAL label
-        if (col.field === "fname") {
-          totalRow[col.field] = "TOTAL";
-          return;
-        }
-
-        // Only total amount columns
-        if (col.formatAmount === false) {
-          return;
-        }
-
-        const total = this.selectedRows.reduce((sum, row) => {
-          const value = Number(row[col.field]);
-          return sum + (isNaN(value) ? 0 : value);
-        }, 0);
-
-        totalRow[col.field] = total;
-      });
-
-      return [totalRow];
+      return this.displayedRows.filter((row) => row.isTotalRow);
     },
     selectedTotals() {
       const rows = this.selectedRows;
@@ -527,19 +406,18 @@ export default {
     },
   },
   watch: {
-    isSelectionActive(newVal) {
-      this.selectionActive = !!newVal;
-      if (!this.selectionActive) {
-        this.selectedRowKeys = [];
-        this.emitSelectionChange();
-      }
-    },
     rows() {
       this.page = 1;
-      if (this.canHoverIndex) {
-        this.selectedRowIndex = 0;
-        this.hoveredRowIndex = 0;
-      }
+
+      this.$nextTick(() => {
+        if (this.displayedBodyRows.length) {
+          this.selectedRowIndex = 0;
+          this.hoveredRowIndex = 0;
+        } else {
+          this.selectedRowIndex = -1;
+          this.hoveredRowIndex = -1;
+        }
+      });
     },
 
     pageSize() {
@@ -583,6 +461,12 @@ export default {
       this.selectedRowIndex = index;
       this.hoveredRowIndex = index;
 
+    },
+    handleDblRowClick(row, index) {
+      // move yellow highlight to clicked row
+      this.selectedRowIndex = index;
+      this.hoveredRowIndex = index;
+
       if (this.selectionActive) {
         this.toggleRowSelection(row);
       } else {
@@ -592,7 +476,10 @@ export default {
     handleSelectionHotkey(e) {
       if (e.key !== 'F7') return;
 
-      // ONLY allow users with M or Z permission
+      // Prevent Edge/WebView caret browsing popup
+      e.preventDefault();
+      e.stopPropagation();
+
       const hasPermission =
         this.$store.state.permissions?.includes('M') ||
         this.$store.state.permissions?.includes('Z');
@@ -606,8 +493,6 @@ export default {
       if (active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName)) {
         return;
       }
-
-      e.preventDefault();
 
       this.selectionActive = !this.selectionActive;
 
@@ -631,8 +516,8 @@ export default {
       }
 
       if (e.key === "ArrowDown") {
-        if (!this.selectionActive && !this.canHoverIndex) return;
         e.preventDefault();
+
         if (this.selectedRowIndex < this.displayedBodyRows.length - 1) {
           this.selectedRowIndex++;
           this.hoveredRowIndex = this.selectedRowIndex;
@@ -640,8 +525,8 @@ export default {
       }
 
       if (e.key === "ArrowUp") {
-        if (!this.selectionActive && !this.canHoverIndex) return;
         e.preventDefault();
+
         if (this.selectedRowIndex > 0) {
           this.selectedRowIndex--;
           this.hoveredRowIndex = this.selectedRowIndex;
@@ -649,13 +534,16 @@ export default {
       }
 
       if (e.key === "Enter") {
-        if (!this.selectionActive) return;
-        e.preventDefault();
+          e.preventDefault();
 
-        const row = this.displayedBodyRows[this.selectedRowIndex];
-        if (row) {
-          this.toggleRowSelection(row);
-        }
+          const row = this.displayedBodyRows[this.selectedRowIndex];
+          if (!row) return;
+
+          if (this.selectionActive) {
+              this.toggleRowSelection(row);
+          } else {
+              this.$emit('row-enter', row);
+          }
       }
     },
 
@@ -670,7 +558,7 @@ export default {
     },
 
     handleDblClick(row, evt) {
-  
+
       if (this.lastInteraction === 'keyboard') {
         return;
       }
@@ -758,16 +646,14 @@ export default {
       // ❌ Block ALL typing and editing keys
       e.preventDefault();
     },
-    toggleSort(key) {
-      if (!this.enableSorting) return;
-
-      if (this.sortBy === key) {
-        this.sortDir = this.sortDir === "asc" ? "desc" : "asc";
-      } else {
-        this.sortBy = key;
-        this.sortDir = "asc";
-      }
-    },
+    // toggleSort(key) {
+    //   if (this.sortBy === key) {
+    //     this.sortDir = this.sortDir === "asc" ? "desc" : "asc";
+    //   } else {
+    //     this.sortBy = key;
+    //     this.sortDir = "asc";
+    //   }
+    // },
     openFilterModal(col) {
       this.filterModal.open = true;
       this.filterModal.column = col;
@@ -839,27 +725,58 @@ export default {
         return row?.[col?.field];
       }
 
-      let value = row[col.field];
+      if (row.isTotalRow && this.selectionActive) {
+        // Hide BR and RC codes in summation mode for total row
+        if (col.field === 'fbr_code' || col.field === 'frc_code' || col.field === 'fterms' || col.field === 'floan_id') {
+          return '';
+        }
 
-      // Format date fields by removing the time portion
-      const dateFields = [
-        "fdate",
-        "floan_date",
-        "fe_date",
-        "loan_date",
-        "fasu_real_cutoff",
-        "fjv_date"
-      ];
+        // Special handling for running balance in selection mode
+        if (col.field === 'frunning_bal') {
+          if (this.selectedRows.length > 0) {
+            const debit = this.selectedTotals['fdebit'] || 0;
+            const credit = this.selectedTotals['fcredit'] || 0;
 
-      if (
-        value &&
-        typeof value === "string" &&
-        dateFields.includes(col.field)
-      ) {
-        value = value.split("T")[0].split(" ")[0];
+            // Determine balance calculation based on ledger type
+            let balance;
+            if (this.isSavings) {
+              // For savings: check if it's receivable
+              if (this.isReceivable) {
+                balance = debit - credit;  // SHARE CAPITAL CONTRIBUTION RECEIVABLE
+              } else {
+                balance = credit - debit;  // Regular savings
+              }
+            } else {
+              // For loans
+              balance = debit - credit;
+            }
+
+            return this.roundAmount(balance);
+          }
+          return '';
+        }
+
+        // Hide other balances in summation mode total row
+        if (
+          col.field === 'fprin_amt' || col.field === 'fint_amt' || col.field === 'fcol_amt' || col.field === 'fsurcharge' ||
+          col.field === 'fgross_bal' || col.field === 'fdocnum2' || col.field === 'ftracking'
+        ) {
+          return '';
+        }
+
+        if (this.selectedRows.length > 0 && this.selectedTotals[col.field] != null) {
+          return this.roundAmount(this.selectedTotals[col.field]);
+        }
+
+        // keep the label column content, but avoid showing the normal full-table totals in summation mode
+        if (col.align === 'center' || col.field === 'loan_date' || col.field === 'fdate' || col.field === 'loan_id') {
+          return row[col.field];
+        }
+
+        return '';
       }
 
-      return value;
+      return row[col.field];
     },
     isRowDisabled(row) {
       return this.disabledRows.includes(row[this.rowKey]);
@@ -915,8 +832,8 @@ export default {
 
       const sourceRef =
         source === 'body' ? this.$refs.tableBody :
-        source === 'header' ? this.$refs.headerScroll :
-        this.$refs.footerScroll;
+          source === 'header' ? this.$refs.headerScroll :
+            this.$refs.footerScroll;
 
       if (!sourceRef) {
         this.isSyncingScroll = false;
@@ -944,6 +861,10 @@ export default {
 </script>
 
 <style scoped>
+.bg-green-custom {
+  background-color: #afffcb;
+}
+
 table {
   border-collapse: collapse;
   table-layout: fixed;
@@ -983,7 +904,8 @@ tbody tr.sticky td {
 }
 
 .no-records-cell {
-  height: 250px; /* adjust as needed */
+  height: 150px;
+  /* adjust as needed */
   vertical-align: middle;
 }
 

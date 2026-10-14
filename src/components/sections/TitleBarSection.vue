@@ -16,7 +16,7 @@
   </div>
   <div v-if="!$store.state.window" class="bg-white w-full p-3 flex flex-row justify-between items-center">
     <div class="flex flex-row items-center justify-center">
-      <p class="text-primary font-bold">AP Surcharge Other Income Realization</p>
+      <p class="text-primary font-bold">Surcharge Computation</p>
       <div class="ml-2 p-1" :class="{
         'bg-error': prodMode === 'TEST',
         'bg-primary': prodMode !== 'TEST'
